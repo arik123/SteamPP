@@ -7,7 +7,9 @@ find_package(Protobuf REQUIRED)
 find_package(CryptoPP REQUIRED)
 find_package(LibArchive REQUIRED)
 
-set(STEAMKIT $ENV{SteamRE} CACHE PATH "Where you cloned SteamKit")
+if(NOT DEFINED STEAMKIT)
+  message(FATAL_ERROR "STEAMKIT needs to be defined using -DSTEAMKIT=<path to the steamkit sources>")
+endif()
 set(PROTOBUF_IMPORT_DIRS ${STEAMKIT}/Resources/Protobufs)
 PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS
 	${PROTOBUF_IMPORT_DIRS}/steamclient/steammessages_clientserver.proto
