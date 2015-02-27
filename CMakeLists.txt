@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.8)
 project(Steam++)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
 find_package(Protobuf REQUIRED)
 find_package(CryptoPP REQUIRED)
