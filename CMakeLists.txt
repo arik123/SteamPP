@@ -24,7 +24,7 @@ include_directories(
 	${PROTOBUF_INCLUDE_DIRS}
 	${CRYPTOPP_INCLUDE_DIR}
 	${LibArchive_INCLUDE_DIRS}
-	${CMAKE_BINARY_DIR}
+	${CMAKE_CURRENT_BINARY_DIR}
 )
 
 add_library(steam++
