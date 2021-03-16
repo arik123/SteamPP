@@ -3,6 +3,8 @@
 #include <cstring>
 
 #include <cryptopp/modes.h>
+#include <steammessages_clientserver_login.pb.h>
+#include <steammessages_clientserver_friends.pb.h>
 
 #include "cmclient.h"
 

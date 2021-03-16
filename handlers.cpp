@@ -6,6 +6,8 @@
 
 #include <archive.h>
 #include <archive_entry.h>
+#include <steammessages_clientserver_login.pb.h>
+#include <steammessages_clientserver_friends.pb.h>
 
 #include "cmclient.h"
 
