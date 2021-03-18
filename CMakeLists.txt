@@ -17,7 +17,7 @@ PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS
 	${PROTOBUF_IMPORT_DIRS}/steam/encrypted_app_ticket.proto
 )
 
-set(CMAKE_CXX_FLAGS " -Wall -pedantic ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS " -Wall ${CMAKE_CXX_FLAGS}")
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	# using Clang
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
