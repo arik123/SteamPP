@@ -156,7 +156,9 @@ namespace Steam {
 		std::function<void(EResult result)> onLogOff;
 		
 		std::function<void(const unsigned char hash[20])> onSentry;
-		
+
+		void SetGamePlayed(int gameID);
+        void SetGamePlayed(std::string name);
 		/**
 		 * Each parameter except @a user is optional and will equal @c nullptr if unset.
 		 */

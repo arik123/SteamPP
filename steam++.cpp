@@ -37,6 +37,7 @@ void SteamClient::LogOn(const char* username, const char* password, const unsign
 	}
 	if (code) {
 		logon.set_auth_code(code);
+		logon.set_two_factor_code(code);
 	}
 	cmClient->WriteMessage(EMsg::ClientLogon, logon);
 }
@@ -45,6 +46,20 @@ void SteamClient::SetPersonaState(EPersonaState state) {
 	CMsgClientChangeStatus change_status;
 	change_status.set_persona_state(static_cast<google::protobuf::uint32>(state));
 	cmClient->WriteMessage(EMsg::ClientChangeStatus, change_status);
+}
+
+void SteamClient::SetGamePlayed(int gameID) {
+	CMsgClientGamesPlayed changedStatus;
+	changedStatus.add_games_played();
+	changedStatus.mutable_games_played(0)->set_game_id(gameID);
+    cmClient->WriteMessage(EMsg::ClientGamesPlayed, changedStatus);
+}
+void SteamClient::SetGamePlayed(std::string name) {
+    CMsgClientGamesPlayed changedStatus;
+	changedStatus.add_games_played();
+	changedStatus.mutable_games_played(0)->set_game_id(15190414816125648896);
+	changedStatus.mutable_games_played(0)->set_game_extra_info(name);
+    cmClient->WriteMessage(EMsg::ClientGamesPlayed, changedStatus);
 }
 
 void SteamClient::JoinChat(SteamID chat) {
@@ -154,13 +169,16 @@ std::size_t SteamClient::readable(const unsigned char* input) {
 		CBC_Mode<AES>::Decryption d(cmClient->sessionKey, sizeof(cmClient->sessionKey), iv);
 		// I don't see any way to get the decrypted size other than to use a string
 		std::string output;
-		ArraySource(
-			crypted_data,
-			packetLength - 16,
-			true,
-			new StreamTransformationFilter(d, new StringSink(output))
-		);
-		
+		try {
+            ArraySource(
+                    crypted_data,
+                    packetLength - 16,
+                    true,
+                    new StreamTransformationFilter(d, new StringSink(output))
+            );
+        } catch (std::exception &e) {
+		    std::cout << e.what() << '\n';
+		}
 		ReadMessage(reinterpret_cast<const unsigned char*>(output.data()), output.length());
 	} else {
 		ReadMessage(input, packetLength);
