@@ -2081,7 +2081,7 @@ namespace Steam {
         BillingNameInvalidResemblesCreditCard = 81,
         PaymentMethodTemporarilyUnavailable = 82,
         PaymentMethodNotSupportedForProduct = 83,
-    }
+    };
     enum class EIntroducerRouting {
         P2PVoiceChat = 1,
         P2PNetworking = 2,
@@ -2605,7 +2605,7 @@ namespace Steam {
         SteamworksAccessInvite = 13,
         SteamVideo = 14,
         GameManagedItem = 15,
-    }
+    };
     enum class EWorkshopFileAction {
         Played = 0,
         Completed = 1,

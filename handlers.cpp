@@ -26,9 +26,6 @@ byte public_key[] = {
 
 void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_t length, std::uint64_t job_id) {
 	switch (emsg) {
-    default:
-	        printf("Recieved EMsg %d\n", emsg);
-            break;
 	case EMsg::ChannelEncryptRequest:
 		{
 			auto enc_request = reinterpret_cast<const MsgChannelEncryptRequest*>(data);
@@ -339,5 +336,8 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
 		}
 		
 		break;
+    default:
+        printf("Recieved EMsg %d\n", emsg);
+        break;
 	}
 }
