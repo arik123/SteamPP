@@ -30,6 +30,7 @@ void SteamClient::CMClient::WriteMessage(EMsg emsg, std::size_t length, const st
 }
 
 void SteamClient::CMClient::WriteMessage(EMsg emsg, const google::protobuf::Message &message, std::uint64_t job_id) {
+	std::cout << "Sending: " << message.GetTypeName() << '\n';
 	CMsgProtoBufHeader proto;
 	proto.set_steamid(steamID);
 	proto.set_client_sessionid(sessionID);

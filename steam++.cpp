@@ -61,7 +61,7 @@ void SteamClient::SetGamePlayed(std::string name) {
 	changedStatus.mutable_games_played(0)->set_game_extra_info(name);
     cmClient->WriteMessage(EMsg::ClientGamesPlayed, changedStatus);
 }
-
+#pragma region groupChat
 void SteamClient::JoinChat(SteamID chat) {
 	if (chat.type == static_cast<unsigned>(EAccountType::Clan)) {
 		// this is a ClanID - convert to its respective ChatID
@@ -112,7 +112,7 @@ void SteamClient::SendChatMessage(SteamID chat, const char* message) {
 		std::strcpy(reinterpret_cast<char*>(buffer + sizeof(MsgClientChatMsg)), message);
 	});
 }
-
+#pragma endregion groupChat
 void SteamClient::SendPrivateMessage(SteamID user, const char* message) {
 	CMsgClientFriendMsg msg;
 	
@@ -143,7 +143,11 @@ void SteamClient::RequestUserInfo(std::size_t count, SteamID users[]) {
 	
 	cmClient->WriteMessage(EMsg::ClientRequestFriendData, request);
 }
-
+template <typename T>
+void Steam::SteamClient::SendCMsg(T& Proto, EMsg eMsg)
+{
+	cmClient->WriteMessage(eMsg, Proto);
+}
 
 std::size_t SteamClient::connected() {
 	packetLength = 0;	

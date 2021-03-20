@@ -159,6 +159,9 @@ namespace Steam {
 
 		void SetGamePlayed(int gameID);
         void SetGamePlayed(std::string name);
+
+		template <typename T>
+		void SendCMsg(T & Proto, EMsg eMsg);
 		/**
 		 * Each parameter except @a user is optional and will equal @c nullptr if unset.
 		 */
