@@ -125,8 +125,8 @@ namespace Steam {
 		);
 		
 		~SteamClient();
-		
-		
+
+
 		/**
 		 * Call when a connection has been established.
 		 * 
@@ -147,7 +147,12 @@ namespace Steam {
 		 * Encryption handshake complete – it's now safe to log on.
 		 */
 		std::function<void()> onHandshake;
-		
+
+		/**
+		 * All messages get passed to this handler
+		 */
+		 std::function<void(EMsg emsg, const unsigned char* data, std::size_t length, std::uint64_t job_id)> customHandler;
+
 		/**
 		 * @a steamID is your SteamID.
 		 */

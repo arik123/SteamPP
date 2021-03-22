@@ -296,12 +296,14 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
 		}
 		
 		break;
-//	case EMsg::ClientServersAvailable:
-//        {
-//            CMsgClientServersAvailable list;
-//            list.ParseFromArray(data, length);
-//        }
-//	    break;
+	case EMsg::ClientServersAvailable:
+        {
+            CMsgClientServersAvailable list;
+            list.ParseFromArray(data, length);
+            auto a = list.server_types_available();
+            auto b = list.server_type_for_auth_services();
+        }
+	    break;
     case EMsg::ClientAccountInfo:
         {
             CMsgClientAccountInfo info;
@@ -340,4 +342,6 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
 		
 		break;
 	}
+//    if(customHandler)
+//        customHandler(emsg, data, length, job_id);
 }

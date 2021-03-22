@@ -30,15 +30,17 @@ void SteamClient::CMClient::WriteMessage(EMsg emsg, std::size_t length, const st
 }
 
 void SteamClient::CMClient::WriteMessage(EMsg emsg, const google::protobuf::Message &message, std::uint64_t job_id) {
+#ifdef _DEBUG
 	std::cout << "Sending: " << message.GetTypeName() << '\n';
+#endif
 	CMsgProtoBufHeader proto;
 	proto.set_steamid(steamID);
 	proto.set_client_sessionid(sessionID);
 	if (job_id) {
 		proto.set_jobid_target(job_id);
 	}
-	auto proto_size = proto.ByteSize();
-	auto message_size = message.ByteSize();
+	auto proto_size = proto.ByteSizeLong();
+	auto message_size = message.ByteSizeLong();
 	WritePacket(sizeof(MsgHdrProtoBuf) + proto_size + message_size, [emsg, &proto, proto_size, &message, message_size](unsigned char* buffer) {
 		auto header = new (buffer) MsgHdrProtoBuf;
 		header->headerLength = proto_size;
