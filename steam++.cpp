@@ -48,6 +48,13 @@ void SteamClient::SetPersonaState(EPersonaState state) {
 	cmClient->WriteMessage(EMsg::ClientChangeStatus, change_status);
 }
 
+void SteamClient::SetPersona(EPersonaState state, const char * name) {
+    CMsgClientChangeStatus change_status;
+    change_status.set_persona_state(static_cast<google::protobuf::uint32>(state));
+    change_status.set_player_name(name);
+    cmClient->WriteMessage(EMsg::ClientChangeStatus, change_status);
+}
+
 void SteamClient::SetGamePlayed(int gameID) {
 	CMsgClientGamesPlayed changedStatus;
 	changedStatus.add_games_played();

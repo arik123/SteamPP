@@ -228,7 +228,7 @@ namespace Steam {
 		);
 		
 		void SetPersonaState(EPersonaState state);
-		
+        void SetPersona(EPersonaState state, const char * name);
 		/**
 		 * @see onChatEnter
 		 */
