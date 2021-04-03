@@ -129,7 +129,7 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
 			auto interval = logon_resp.out_of_game_heartbeat_seconds();
 			
 			if (onLogOn) {
-				onLogOn(eresult, cmClient->steamID);
+				onLogOn(eresult, cmClient->steamID, logon_resp.cell_id());
 			}
 			
 			if (eresult == EResult::OK) {
@@ -175,7 +175,13 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
 		}
 		
 		break;
-		
+	case EMsg::ClientSessionToken:
+        {
+            CMsgClientSessionToken session;
+            session.ParseFromArray(data, length);
+            onSessionToken(session.token());
+            break;
+        }
 	case EMsg::ClientPersonaState:
 		{
 			if (!onUserInfo) {
