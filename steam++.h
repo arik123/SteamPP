@@ -214,7 +214,11 @@ namespace Steam {
 			std::map<SteamID, EFriendRelationship> &users,
 			std::map<SteamID, EClanRelationship> &groups
 		)> onRelationships;
-		
+
+		/**
+		 * @return true if EMsg was handled
+		 */
+        std::function<bool(EMsg emsg, const unsigned char* data, std::size_t length, std::uint64_t job_id)> defaultHandler;
 		
 		/**
 		 * Call this after the encryption handshake. @a steamID is only needed if you are logging into a non-default instance.

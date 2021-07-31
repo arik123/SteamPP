@@ -11,6 +11,8 @@
 
 #include "cmclient.h"
 
+#include "../../consoleColor.h"
+
 byte public_key[] = {
 	0x30, 0x81, 0x9D, 0x30, 0x0D, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x01, 0x01,
 	0x05, 0x00, 0x03, 0x81, 0x8B, 0x00, 0x30, 0x81, 0x87, 0x02, 0x81, 0x81, 0x00, 0xDF, 0xEC, 0x1A,
@@ -347,6 +349,26 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
 		}
 		
 		break;
+    case EMsg::ClientIsLimitedAccount:
+        {
+            CMsgClientIsLimitedAccount limit;
+            limit.ParseFromArray(data, length);
+            std::cout << color(colorFG::Green);
+            printf("Account has following limitations: Limited Account %d\nCommunity Ban - %d\nLocked Account %d\nLimited Account Allowed to invite friends %d\n",
+                   limit.bis_limited_account(), limit.bis_community_banned(), limit.bis_locked_account(), limit.bis_limited_account_allowed_to_invite_friends());
+            std::cout << color();
+        }
+        break;
+    default:
+        {
+            if(!defaultHandler(emsg, data, length, job_id))
+            {
+#ifdef _DEBUG
+                std::cout << color(colorFG::Red) << "Unhandled EMsg: "<< Steam::EMsgMap.at(static_cast<int>(emsg)) << color() << '\n';
+#endif
+            }
+
+        }
 	}
 //    if(customHandler)
 //        customHandler(emsg, data, length, job_id);
