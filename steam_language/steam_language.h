@@ -1,5 +1,5 @@
 #include <cstdint>
-
+#pragma once
 #pragma pack(push, 1)
 
 namespace Steam

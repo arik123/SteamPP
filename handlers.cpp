@@ -349,16 +349,6 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
 		}
 		
 		break;
-    case EMsg::ClientIsLimitedAccount:
-        {
-            CMsgClientIsLimitedAccount limit;
-            limit.ParseFromArray(data, length);
-            std::cout << color(colorFG::Green);
-            printf("Account has following limitations: Limited Account %d\nCommunity Ban - %d\nLocked Account %d\nLimited Account Allowed to invite friends %d\n",
-                   limit.bis_limited_account(), limit.bis_community_banned(), limit.bis_locked_account(), limit.bis_limited_account_allowed_to_invite_friends());
-            std::cout << color();
-        }
-        break;
     default:
         {
             if(!defaultHandler(emsg, data, length, job_id))

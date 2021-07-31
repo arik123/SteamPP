@@ -1,3 +1,4 @@
+#pragma once
 #include <functional>
 #include <map>
 #include "steam_language/steam_language.h"
