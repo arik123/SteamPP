@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include <map>
+#include <string>
 #include "steam_language/steam_language.h"
 
 namespace Steam {
