@@ -3,6 +3,7 @@
 #include <map>
 #include <string>
 #include "steam_language/steam_language.h"
+#include "../../SteamApi.h"
 
 namespace Steam {
 	const struct {
@@ -166,6 +167,8 @@ namespace Steam {
 		
 		std::function<void(const unsigned char hash[20])> onSentry;
 
+		SteamApi * api = nullptr;
+
 		void SetGamePlayed(int gameID);
         void SetGamePlayed(std::string name);
 
@@ -217,6 +220,8 @@ namespace Steam {
 			std::map<SteamID, EClanRelationship> &groups
 		)> onRelationships;
 
+		std::function<void(std::string)> onWebSession;
+
 		/**
 		 * @return true if EMsg was handled
 		 */
@@ -254,6 +259,8 @@ namespace Steam {
 		 * @see onUserInfo
 		 */
 		void RequestUserInfo(std::size_t count, SteamID users[]);
+
+		void webLogOn();
 		
 	private:
 		class CMClient;
@@ -264,5 +271,6 @@ namespace Steam {
 		std::size_t packetLength;
 		void ReadMessage(const unsigned char* data, std::size_t length);
 		void HandleMessage(EMsg eMsg, const unsigned char* data, std::size_t length, std::uint64_t job_id);
-	};
+        void _webAuthenticate(const std::string& nonce);
+    };
 }

@@ -35,7 +35,7 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
 		{
 			auto enc_request = reinterpret_cast<const MsgChannelEncryptRequest*>(data);
 			
-			RSA::PublicKey key;
+			CryptoPP::RSA::PublicKey key;
 			ArraySource source(public_key, sizeof(public_key), true /* pumpAll */);
 			key.Load(source);
 			RSAES_OAEP_SHA_Encryptor rsa(key);
@@ -129,7 +129,7 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
 			logon_resp.ParseFromArray(data, length);
 			auto eresult = static_cast<EResult>(logon_resp.eresult());
 			auto interval = logon_resp.out_of_game_heartbeat_seconds();
-			
+			if(!logon_resp.webapi_authenticate_user_nonce().empty()) _webAuthenticate(logon_resp.webapi_authenticate_user_nonce());
 			if (onLogOn) {
 				onLogOn(eresult, cmClient->steamID, logon_resp.cell_id());
 			}
@@ -167,7 +167,7 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
 			auto &bytes = machine_auth.bytes();
 			
 			byte sha[20];
-			SHA1().CalculateDigest(sha, reinterpret_cast<const byte*>(bytes.data()), bytes.length());
+            CryptoPP::SHA1().CalculateDigest(sha, reinterpret_cast<const byte*>(bytes.data()), bytes.length());
 			
 			CMsgClientUpdateMachineAuthResponse response;
 			response.set_sha_file(sha, 20);
@@ -349,6 +349,16 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
 		}
 		
 		break;
+    case EMsg::ClientRequestWebAPIAuthenticateUserNonceResponse:
+        {
+            CMsgClientRequestWebAPIAuthenticateUserNonceResponse response;
+            response.ParseFromArray(data, length);
+            if(static_cast<EResult>(response.eresult()) == EResult::OK) {
+                _webAuthenticate(response.webapi_authenticate_user_nonce());
+                //if(onWebSession) onWebSession(response.webapi_authenticate_user_nonce());
+            }
+        }
+        break;
     default:
         {
             if(!defaultHandler(emsg, data, length, job_id))

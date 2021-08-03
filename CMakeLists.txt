@@ -35,15 +35,20 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 )
 
+include_directories($<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../certify/include>)
 add_library(steam++
 	steam++.cpp
 	cmclient.cpp
 	handlers.cpp
 	${PROTO_SRCS}
-)
+	SteamCrypto.cpp)
 
 target_link_libraries(steam++
 	${PROTOBUF_LIBRARIES}
 	${CRYPTOPP_LIBRARIES}
 	${LibArchive_LIBRARIES}
 )
+IF (WIN32)
+	add_compile_definitions(WIN32_LEAN_AND_MEAN)
+	add_compile_definitions(BOOST_ASIO_NO_WIN32_LEAN_AND_MEAN )
+ENDIF()

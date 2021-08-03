@@ -1,6 +1,6 @@
 Steam++
 =======
-
+**WARNING** this library is currently unusable outside of SteamBot++ project \
 This is a C++ port of [SteamKit2](https://github.com/SteamRE/SteamKit). It's framework-agnostic – you should be able to integrate it with any event loop.
 
 ## Building

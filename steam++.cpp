@@ -7,6 +7,11 @@
 #include <steammessages_clientserver_friends.pb.h>
 
 #include "cmclient.h"
+#include "steam++.h"
+#include "SteamCrypto.h"
+#include "../../SteamApi.h"
+#include "../../consoleColor.h"
+
 
 SteamID::SteamID(std::uint64_t steamID64) :
 	steamID64(steamID64) {}
@@ -225,4 +230,61 @@ void SteamClient::ReadMessage(const unsigned char* data, std::size_t length) {
 		auto header = reinterpret_cast<const ExtendedClientMsgHdr*>(data);
 		HandleMessage(emsg, data + sizeof(ExtendedClientMsgHdr), length - sizeof(ExtendedClientMsgHdr), header->sourceJobID);
 	}
+}
+
+void Steam::SteamClient::webLogOn() {
+    CMsgClientRequestWebAPIAuthenticateUserNonce request;
+    cmClient->WriteMessage(EMsg::ClientRequestWebAPIAuthenticateUserNonce, request);
+}
+void Steam::SteamClient::_webAuthenticate (const std::string& nonce) {
+    if(api == nullptr) throw std::exception("No steam api");
+    // Encrypt the nonce. I don't know if the client uses HMAC IV here, but there's no harm in it...
+    auto sessionKey = SteamCrypto::generateSessionKey();
+    auto encryptedNonce = SteamCrypto::symmetricEncryptWithHmacIv(std::vector<uint8_t> (nonce.begin(), nonce.end()), sessionKey.plain);
+
+    api->request("ISteamUserAuth", "AuthenticateUser", "v1", true, {
+            { "steamid", std::to_string(cmClient->steamID.steamID64) },
+            { "sessionkey", sessionKey.encrypted},
+            { "encrypted_loginkey", encryptedNonce},
+            {"format", "json"}
+        },
+        [](http::response<http::string_body> resp){
+            std::cout << resp.result_int() << '\n';
+            std::cout << color(colorFG::Magenta) << resp.body() << color();
+        });
+/*
+    try {
+        let res = await this._apiRequest('POST', 'ISteamUserAuth', 'AuthenticateUser', 1, data);
+        if (!res.authenticateuser || (!res.authenticateuser.token && !res.authenticateuser.tokensecure)) {
+            throw new Error('Malformed response');
+        }
+
+        // Generate a random sessionid (CSRF token)
+        let sessionid = Crypto.randomBytes(12).toString('hex');
+        let cookies = ['sessionid=' + sessionid];
+        if (res.authenticateuser.token) {
+            cookies.push('steamLogin=' + res.authenticateuser.token);
+        }
+        if (res.authenticateuser.tokensecure) {
+            cookies.push('steamLoginSecure=' + res.authenticateuser.tokensecure);
+        }
+
+        this.emit('webSession', sessionid, cookies);
+    } catch (ex) {
+        this.emit('debug', 'Webauth failed: ' + ex.message);
+
+        if (ex.message == 'HTTP error 429') {
+            // We got rate-limited
+            this._webauthTimeout = 50000;
+        }
+
+        if (this._webauthTimeout) {
+            this._webauthTimeout = Math.min(this._webauthTimeout * 2, 50000);
+        } else {
+            this._webauthTimeout = 1000;
+        }
+
+        setTimeout(this._webLogOn.bind(this), this._webauthTimeout);
+    }
+    */
 }
