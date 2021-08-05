@@ -4,6 +4,7 @@
 //
 
 #include "SteamCrypto.h"
+#include "../../consoleColor.h"
 #include <cryptopp/osrng.h>
 #include <cryptopp/cryptlib.h>
 #include <cryptopp/rsa.h>
@@ -25,7 +26,7 @@ namespace SteamCrypto{
 }
 
 
-SteamCrypto::sessionKey SteamCrypto::generateSessionKey(const std::vector<uint8_t>& nonce) {
+SteamCrypto::sessionKey SteamCrypto::generateSessionKey(const std::vector<uint8_t>& nonce) { //THIS SHOULD NOT BE THE PROBLEM
     //   Using a ANSI approved Cipher
     CryptoPP::AutoSeededRandomPool rng;
 
@@ -36,6 +37,7 @@ SteamCrypto::sessionKey SteamCrypto::generateSessionKey(const std::vector<uint8_
     CryptoPP::RSA::PublicKey pk;
     CryptoPP::ArraySource source(public_key, sizeof(public_key), true /* pumpAll */);
     pk.Load(source);
+    bool valid = pk.Validate(rng, 3);
     CryptoPP::RSAES_OAEP_SHA_Encryptor rsa(pk);
     std::vector<uint8_t> toEncrypt = key.plain;
     toEncrypt.insert(toEncrypt.end(), nonce.begin(), nonce.end());
@@ -49,7 +51,8 @@ std::vector<uint8_t> SteamCrypto::symmetricEncryptWithHmacIv(std::vector<uint8_t
     std::vector<uint8_t> random(3);
     rng.GenerateBlock( random.data(), 3 );
 
-    CryptoPP::HMAC<CryptoPP::SHA1> hmac(key.data(), std::min(key.size(), (size_t)16));
+    std::vector<uint8_t> keySlice(key.begin(), key.begin()+std::min(key.size(), (size_t)16));
+    CryptoPP::HMAC<CryptoPP::SHA1> hmac(keySlice.data(), keySlice.size());
 
     hmac.Update(random.data(), random.size());
     hmac.Update(input.data(), input.size());
@@ -59,11 +62,13 @@ std::vector<uint8_t> SteamCrypto::symmetricEncryptWithHmacIv(std::vector<uint8_t
     digest.resize(16 - random.size());
     digest.insert(digest.end(), random.begin(), random.end());
 
-    //return exports.symmetricEncrypt(input, key, Buffer.concat([hmac.digest().slice(0, 16 - random.length), random])); // the resulting IV must be 16 bytes long, so truncate the hmac to make room for the random
     return symmetricEncrypt(input, key, digest);
 }
 
 std::vector<uint8_t> SteamCrypto::symmetricEncrypt(std::vector<uint8_t> input, std::vector<uint8_t> key, std::vector<uint8_t> iv) {
+    if(key.size() != 32) {
+        std::cout << color(colorFG::Bright_Red) << "SymmetricEncrypt used with non 32 byte key!" << color();
+    }
     CryptoPP::AutoSeededRandomPool rng;
     if(iv.empty()) {
         iv.resize(16);
@@ -77,7 +82,7 @@ std::vector<uint8_t> SteamCrypto::symmetricEncrypt(std::vector<uint8_t> input, s
     CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption cbc_e;
     std::vector<uint8_t> out;
     // Make room for padding
-    out.resize(input.size()+CryptoPP::AES::BLOCKSIZE);
+    out.resize(input.size() + (CryptoPP::AES::BLOCKSIZE - (input.size() % CryptoPP::AES::BLOCKSIZE) ) );
     cbc_e.SetKeyWithIV(key.data(), key.size(), iv.data(), iv.size());
     CryptoPP::ArraySource(
                 input.data(),
@@ -87,10 +92,9 @@ std::vector<uint8_t> SteamCrypto::symmetricEncrypt(std::vector<uint8_t> input, s
                     new CryptoPP::ArraySink(out.data(), out.size())
                 )
             );
-    //cbc_e.ProcessString(input.data(), input.size());
 
     std::vector<uint8_t> output = ivc;
     output.insert(output.end(), out.begin(), out.end());
 
-    return out;
+    return output;
 }

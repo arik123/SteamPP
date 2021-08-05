@@ -220,7 +220,12 @@ namespace Steam {
 			std::map<SteamID, EClanRelationship> &groups
 		)> onRelationships;
 
-		std::function<void(std::string)> onWebSession;
+		/***
+		 * called when web cookies are acquired, vector contains all cookies
+		 */
+		std::function<void(std::vector<std::string>& cookies, std::string & sessionid)> onWebSession;
+
+		std::string sessionID;
 
 		/**
 		 * @return true if EMsg was handled

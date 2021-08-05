@@ -1,8 +1,11 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
+#include <iomanip>
 
 #include <cryptopp/modes.h>
+#include <cryptopp/base64.h>
+#include <cryptopp/osrng.h>
 #include <steammessages_clientserver_login.pb.h>
 #include <steammessages_clientserver_friends.pb.h>
 
@@ -237,30 +240,58 @@ void Steam::SteamClient::webLogOn() {
     cmClient->WriteMessage(EMsg::ClientRequestWebAPIAuthenticateUserNonce, request);
 }
 void Steam::SteamClient::_webAuthenticate (const std::string& nonce) {
-    if(api == nullptr) throw std::exception("No steam api");
+    // https://github.com/Jessecar96/SteamBot/blob/master/SteamTrade/SteamWeb.cs#L395
+    // https://github.com/DoctorMcKay/node-steam-user/blob/master/components/web.js#L30
+    if(api == nullptr) throw "No steam api";
     // Encrypt the nonce. I don't know if the client uses HMAC IV here, but there's no harm in it...
     auto sessionKey = SteamCrypto::generateSessionKey();
-    auto encryptedNonce = SteamCrypto::symmetricEncryptWithHmacIv(std::vector<uint8_t> (nonce.begin(), nonce.end()), sessionKey.plain);
+    auto encryptedNonce = SteamCrypto::symmetricEncryptWithHmacIv(std::vector<uint8_t> (nonce.begin(), nonce.end()), sessionKey.plain); //TODO CHECK WITH STEAM-CRYPTO
 
-    api->request("ISteamUserAuth", "AuthenticateUser", "v1", true, {
+    api->request("ISteamUserAuth", "AuthenticateUser", "v0001", true, {
             { "steamid", std::to_string(cmClient->steamID.steamID64) },
             { "sessionkey", sessionKey.encrypted},
             { "encrypted_loginkey", encryptedNonce},
             {"format", "json"}
         },
-        [](http::response<http::string_body> resp){
-            std::cout << resp.result_int() << '\n';
-            std::cout << color(colorFG::Magenta) << resp.body() << color();
+        [&](http::response<http::string_body>& resp){
+            std::vector<std::string> cookies;
+            if(resp.result_int() == 200){
+                CryptoPP::AutoSeededRandomPool rng;
+                uint8_t buff[12];
+                rng.GenerateBlock(buff, 12);
+                std::ostringstream ss;
+                ss << std::hex;
+                for(unsigned char i : buff)
+                    ss << std::setw(2) << std::setfill('0') << (int)i;
+                sessionID = ss.str();
+                cookies.emplace_back("sessionid=" + sessionID);
+
+                if (resp[http::field::content_type].starts_with("application/json")) {
+                    rapidjson::Document document;
+                    document.ParseInsitu(resp.body().data());
+
+                    if(document.HasMember("authenticateuser") && document["authenticateuser"].HasMember("token")){
+                        std::string token = document["authenticateuser"]["token"].GetString();
+                        cookies.emplace_back("steamLogin=" + token);
+                    }
+
+                    if(document.HasMember("authenticateuser") && document["authenticateuser"].HasMember("tokensecure")){
+                        std::string tokensecure = document["authenticateuser"]["token"].GetString();
+                        cookies.emplace_back("steamLoginSecure=" + tokensecure);
+                    }
+                }
+                onWebSession(cookies, sessionID);
+            }
         });
 /*
     try {
-        let res = await this._apiRequest('POST', 'ISteamUserAuth', 'AuthenticateUser', 1, data);
-        if (!res.authenticateuser || (!res.authenticateuser.token && !res.authenticateuser.tokensecure)) {
-            throw new Error('Malformed response');
-        }
+        /let res = await this._apiRequest('POST', 'ISteamUserAuth', 'AuthenticateUser', 1, data);
+        / (!res.authenticateuser || (!res.authenticateuser.token && !res.authenticateuser.tokensecure)) {
+        /    throw new Error('Malformed response');
+        /}
 
         // Generate a random sessionid (CSRF token)
-        let sessionid = Crypto.randomBytes(12).toString('hex');
+        /let sessionid = Crypto.randomBytes(12).toString('hex');
         let cookies = ['sessionid=' + sessionid];
         if (res.authenticateuser.token) {
             cookies.push('steamLogin=' + res.authenticateuser.token);
