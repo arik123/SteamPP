@@ -167,7 +167,11 @@ namespace Steam {
 		
 		std::function<void(const unsigned char hash[20])> onSentry;
 
-		SteamApi * api = nullptr;
+        std::string myUniqueId;
+
+        std::string noonce;
+
+        SteamApi * api = nullptr;
 
 		void SetGamePlayed(int gameID);
         void SetGamePlayed(std::string name);

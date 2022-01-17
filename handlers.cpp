@@ -129,7 +129,7 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
 			logon_resp.ParseFromArray(data, length);
 			auto eresult = static_cast<EResult>(logon_resp.eresult());
 			auto interval = logon_resp.out_of_game_heartbeat_seconds();
-			if(!logon_resp.webapi_authenticate_user_nonce().empty()) _webAuthenticate(logon_resp.webapi_authenticate_user_nonce());
+			if(!logon_resp.webapi_authenticate_user_nonce().empty()) this->noonce = logon_resp.webapi_authenticate_user_nonce();
 			if (onLogOn) {
 				onLogOn(eresult, cmClient->steamID, logon_resp.cell_id());
 			}
@@ -349,12 +349,22 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
 		}
 		
 		break;
+    case EMsg::ClientNewLoginKey:
+        {
+            CMsgClientNewLoginKey loginKey;
+            loginKey.ParseFromArray(data,length);
+            std::cout << "key: " << loginKey.login_key() << " id: " << loginKey.unique_id()<<std::endl;
+            this->myUniqueId = std::to_string(loginKey.unique_id());
+            _webAuthenticate(this->noonce);
+        }
+        break;
     case EMsg::ClientRequestWebAPIAuthenticateUserNonceResponse:
         {
             CMsgClientRequestWebAPIAuthenticateUserNonceResponse response;
             response.ParseFromArray(data, length);
             if(static_cast<EResult>(response.eresult()) == EResult::OK) {
-                _webAuthenticate(response.webapi_authenticate_user_nonce());
+                this->noonce = response.webapi_authenticate_user_nonce();
+                _webAuthenticate(this->noonce);
                 //if(onWebSession) onWebSession(response.webapi_authenticate_user_nonce());
             }
         }

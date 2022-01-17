@@ -4,7 +4,6 @@
 #include <iomanip>
 
 #include <cryptopp/modes.h>
-#include <cryptopp/base64.h>
 #include <cryptopp/osrng.h>
 #include <steammessages_clientserver_login.pb.h>
 #include <steammessages_clientserver_friends.pb.h>
@@ -14,6 +13,7 @@
 #include "SteamCrypto.h"
 #include "../../SteamApi.h"
 #include "../../consoleColor.h"
+#include <boost/beast/core/detail/base64.hpp>
 
 
 SteamID::SteamID(std::uint64_t steamID64) :
@@ -241,11 +241,16 @@ void Steam::SteamClient::webLogOn() {
 }
 void Steam::SteamClient::_webAuthenticate (const std::string& nonce) {
     // https://github.com/Jessecar96/SteamBot/blob/master/SteamTrade/SteamWeb.cs#L395
+    https://github.com/Jessecar96/SteamBot/blob/master/SteamTrade/SteamWeb.cs#L333
     // https://github.com/DoctorMcKay/node-steam-user/blob/master/components/web.js#L30
     if(api == nullptr) throw "No steam api";
     // Encrypt the nonce. I don't know if the client uses HMAC IV here, but there's no harm in it...
     auto sessionKey = SteamCrypto::generateSessionKey();
     auto encryptedNonce = SteamCrypto::symmetricEncryptWithHmacIv(std::vector<uint8_t> (nonce.begin(), nonce.end()), sessionKey.plain); //TODO CHECK WITH STEAM-CRYPTO
+    std::string SessionID;
+    SessionID.resize(boost::beast::detail::base64::encoded_size(myUniqueId.size()));
+    boost::beast::detail::base64::encode(SessionID.data(), myUniqueId.c_str(), myUniqueId.size());
+    std::cout << SessionID << std::endl;
 
     api->request("ISteamUserAuth", "AuthenticateUser", "v0001", true, {
             { "steamid", std::to_string(cmClient->steamID.steamID64) },
@@ -253,19 +258,10 @@ void Steam::SteamClient::_webAuthenticate (const std::string& nonce) {
             { "encrypted_loginkey", encryptedNonce},
             {"format", "json"}
         },
-        [&](http::response<http::string_body>& resp){
+        [&, SessionID](http::response<http::string_body>& resp){
             std::vector<std::string> cookies;
             if(resp.result_int() == 200){
-                CryptoPP::AutoSeededRandomPool rng;
-                uint8_t buff[12];
-                rng.GenerateBlock(buff, 12);
-                std::ostringstream ss;
-                ss << std::hex;
-                for(unsigned char i : buff)
-                    ss << std::setw(2) << std::setfill('0') << (int)i;
-                sessionID = ss.str();
-                cookies.emplace_back("sessionid=" + sessionID);
-
+                cookies.emplace_back("sessionid=" + SessionID);
                 if (resp[http::field::content_type].starts_with("application/json")) {
                     rapidjson::Document document;
                     document.ParseInsitu(resp.body().data());
@@ -277,10 +273,12 @@ void Steam::SteamClient::_webAuthenticate (const std::string& nonce) {
 
                     if(document.HasMember("authenticateuser") && document["authenticateuser"].HasMember("tokensecure")){
                         std::string tokensecure = document["authenticateuser"]["token"].GetString();
-                        cookies.emplace_back("steamLoginSecure=" + tokensecure);
+                        cookies.emplace_back("steamLoginSecure=" + std::to_string(cmClient->steamID.steamID64) + "%7C%7C" + tokensecure);
                     }
                 }
-                onWebSession(cookies, sessionID);
+                cookies.emplace_back("Steam_Language=english");
+                cookies.emplace_back("timezoneOffset=0,0");
+                onWebSession(cookies, (std::string)SessionID);
             }
         });
 /*
