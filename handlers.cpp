@@ -128,8 +128,8 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
 			CMsgClientLogonResponse logon_resp;
 			logon_resp.ParseFromArray(data, length);
 			auto eresult = static_cast<EResult>(logon_resp.eresult());
-			auto interval = logon_resp.out_of_game_heartbeat_seconds();
-			if(!logon_resp.webapi_authenticate_user_nonce().empty()) this->noonce = logon_resp.webapi_authenticate_user_nonce();
+			auto interval = logon_resp.legacy_out_of_game_heartbeat_seconds();
+			//if(!logon_resp.webapi_authenticate_user_nonce().empty()) this->noonce = logon_resp.webapi_authenticate_user_nonce();
 			if (onLogOn) {
 				onLogOn(eresult, cmClient->steamID, logon_resp.cell_id());
 			}

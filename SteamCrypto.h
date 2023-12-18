@@ -6,6 +6,7 @@
 #define STEAMBOT_STEAMCRYPTO_H
 #include <vector>
 #include <string>
+#include <cstdint>
 
 namespace SteamCrypto {
     struct sessionKey {

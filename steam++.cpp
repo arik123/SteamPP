@@ -278,7 +278,7 @@ void Steam::SteamClient::_webAuthenticate (const std::string& nonce) {
                 }
                 cookies.emplace_back("Steam_Language=english");
                 cookies.emplace_back("timezoneOffset=0,0");
-                onWebSession(cookies, (std::string)SessionID);
+                //onWebSession(cookies, (std::string)SessionID);
             }
         });
 /*
