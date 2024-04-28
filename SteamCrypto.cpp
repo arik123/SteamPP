@@ -4,7 +4,7 @@
 //
 
 #include "SteamCrypto.h"
-#include "../../consoleColor.h"
+#include "../../src/consoleColor.h"
 #include <cryptopp/osrng.h>
 #include <cryptopp/cryptlib.h>
 #include <cryptopp/rsa.h>

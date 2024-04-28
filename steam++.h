@@ -5,7 +5,7 @@
 #include <map>
 #include <string>
 #include "steam_language/steam_language.h"
-#include "../../SteamApi.h"
+#include "../../src/SteamApi.h"
 
 namespace Steam {
 	struct SteamID {

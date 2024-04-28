@@ -11,8 +11,8 @@
 #include "cmclient.h"
 #include "steam++.h"
 #include "SteamCrypto.h"
-#include "../../SteamApi.h"
-#include "../../consoleColor.h"
+#include "../../src/SteamApi.h"
+#include "../../src/consoleColor.h"
 #include <boost/beast/core/detail/base64.hpp>
 
 
