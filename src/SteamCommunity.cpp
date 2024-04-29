@@ -6,7 +6,7 @@
 #include "../include/utils.h"
 #include "rapidjson/ostreamwrapper.h"
 #include "rapidjson/writer.h"
-#include "../../../src/consoleColor.h"
+#include "../include/consoleColor.h"
 
 #undef _DEBUG_JSON
 

@@ -12,7 +12,7 @@
 #include "../include/steam++.h"
 #include "../include/SteamCrypto.h"
 #include "../include/SteamApi.h"
-#include "../../../src/consoleColor.h"
+#include "../include/consoleColor.h"
 #include <boost/beast/core/detail/base64.hpp>
 
 

@@ -9,4 +9,5 @@ std::string urlEncode(const std::vector<uint8_t>& SRC);
 void fail(beast::error_code ec, char const *what);
 std::ostringstream printHttpMessage(beast::http::request<beast::http::string_body> & msg);
 std::ostringstream printHttpMessage(beast::http::response<beast::http::string_body> & msg);
+std::string generateAuthCode(const std::string &secret);
 #endif
