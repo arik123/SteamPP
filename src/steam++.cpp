@@ -11,7 +11,7 @@
 #include "../include/cmclient.h"
 #include "../include/steam++.h"
 #include "../include/SteamCrypto.h"
-#include "../../../src/SteamApi.h"
+#include "../include/SteamApi.h"
 #include "../../../src/consoleColor.h"
 #include <boost/beast/core/detail/base64.hpp>
 
@@ -41,6 +41,7 @@ void SteamClient::LogOn(const char* username, const char* password, const unsign
 	logon.set_account_name(username);
 	logon.set_password(password);
 	logon.set_protocol_version(65580);
+    logon.set_chat_mode(0);
 	if (hash) {
 		logon.set_sha_sentryfile(hash, 20);
 	}

@@ -3,6 +3,7 @@
 
 #include <cryptopp/crc.h>
 #include <cryptopp/rsa.h>
+#include <boost/endian/conversion.hpp>
 
 #include <zlib.h>
 #include "steammessages_clientserver_login.pb.h"
@@ -30,7 +31,7 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, uint32_t l
     if(Steam::EMsgMap.contains(static_cast<int>(emsg))) std::cout << "Recieved EMsg: "<< Steam::EMsgMap.at(static_cast<int>(emsg)) << std::endl;
     else {
         std::cout << "Recieved unknown EMsg: " << static_cast<int>(emsg);
-        if (std::strlen(reinterpret_cast<const char *>(data)) < length) std::cout << " Data: " << data;
+        std::cout << " Data:(" << length << ") " << std::string_view(reinterpret_cast<const char *>(data), length);
         std::cout << std::endl;
     }
 #endif
@@ -81,11 +82,13 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, uint32_t l
         auto payload = msg_multi.message_body();
 
         std::unique_ptr<unsigned char> buffer = nullptr;
+        auto payload_data = reinterpret_cast<unsigned char *>(payload.data());
+        auto payload_size = payload.size();
         if (msg_multi.has_size_unzipped() && msg_multi.size_unzipped() > 0) {
             auto size_unzipped = msg_multi.size_unzipped();
             buffer = std::unique_ptr<unsigned char>(new unsigned char[size_unzipped]);
             z_stream zStream = {
-                    .next_in = reinterpret_cast<unsigned char *>(payload.data()),
+                    .next_in = payload_data,
                     .avail_in = (uInt)payload.size(),
                     .next_out = buffer.get(),
                     .avail_out = size_unzipped,
@@ -99,14 +102,13 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, uint32_t l
             assert(res == Z_STREAM_END);
             res = inflateEnd(&zStream);
             assert(res == Z_OK);
-
-            data = buffer.get();
+            payload_data = buffer.get();
+            payload_size = size_unzipped;
         }
 
-        auto payload_size = msg_multi.has_size_unzipped() ? msg_multi.size_unzipped() : payload.size();
         for (unsigned offset = 0; offset < payload_size;) {
-            auto subSize = *reinterpret_cast<const std::uint32_t*>(data + offset);
-            ReadMessage(data + offset + 4, subSize);
+            auto subSize = *reinterpret_cast<const std::uint32_t*>(payload_data + offset);
+            ReadMessage(payload_data + offset + 4, subSize);
             offset += 4 + subSize;
         }
         break;

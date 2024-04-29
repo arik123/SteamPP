@@ -46,7 +46,9 @@ add_library(steam++
 	${PROTO_SRCS}
 	src/SteamCrypto.cpp
 	src/WebRequest.cpp
-	src/utils.cpp)
+	src/utils.cpp
+	src/SteamApi.cpp
+	src/SteamCommunity.cpp)
 
 target_include_directories(steam++ PRIVATE ${Boost_INCLUDE_DIR} http_parser)
 
