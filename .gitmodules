@@ -1,3 +1,7 @@
 [submodule "Protobufs"]
-	path = Protobufs
+	path = lib/Protobufs
 	url = https://github.com/SteamDatabase/Protobufs.git
+[submodule "lib/certify"]
+	path = lib/certify
+	url = https://github.com/djarek/certify.git
+	branch = master

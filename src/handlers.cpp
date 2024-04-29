@@ -28,7 +28,11 @@ byte public_key[] = {
 void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, uint32_t length, std::uint64_t job_id) {
 #ifdef _DEBUG
     if(Steam::EMsgMap.contains(static_cast<int>(emsg))) std::cout << "Recieved EMsg: "<< Steam::EMsgMap.at(static_cast<int>(emsg)) << std::endl;
-    else std::cout << "Recieved unknown EMsg: " << static_cast<int>(emsg) << std::endl;
+    else {
+        std::cout << "Recieved unknown EMsg: " << static_cast<int>(emsg);
+        if (std::strlen(reinterpret_cast<const char *>(data)) < length) std::cout << " Data: " << data;
+        std::cout << std::endl;
+    }
 #endif
 	switch (emsg) {
 	case EMsg::ChannelEncryptRequest:
@@ -359,7 +363,9 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, uint32_t l
             if(!defaultHandler(emsg, data, length, job_id))
             {
 #ifdef _DEBUG
-                std::cout << color(colorFG::Red) << "Unhandled EMsg: "<< Steam::EMsgMap.at(static_cast<int>(emsg)) << color() << '\n';
+
+                if(Steam::EMsgMap.contains(static_cast<int>(emsg))) std::cout << color(colorFG::Red) << "Unhandled EMsg: "<< Steam::EMsgMap.at(static_cast<int>(emsg)) << color() << '\n';
+                else std::cout << color(colorFG::Red) << "Unhandled EMsg: "<< static_cast<int>(emsg) << color() << '\n';
 #endif
             }
 
