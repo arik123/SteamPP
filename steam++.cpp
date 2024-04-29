@@ -208,7 +208,7 @@ std::size_t SteamClient::readable(const unsigned char* input) {
 	return 8;
 }
 
-void SteamClient::ReadMessage(const unsigned char* data, std::size_t length) {
+void SteamClient::ReadMessage(const unsigned char* data, uint32_t length) {
 	auto raw_emsg = *reinterpret_cast<const std::uint32_t*>(data);
 	auto emsg = static_cast<EMsg>(raw_emsg & ~PROTO_MASK);
 

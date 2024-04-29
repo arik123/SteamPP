@@ -25,14 +25,14 @@ byte public_key[] = {
 	0xE9, 0x63, 0xA2, 0xBB, 0x88, 0x19, 0x28, 0xE0, 0xE7, 0x14, 0xC0, 0x42, 0x89, 0x02, 0x01, 0x11,
 };
 
-void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_t length, std::uint64_t job_id) {
+void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, uint32_t length, std::uint64_t job_id) {
 #ifdef _DEBUG
 	std::cout << "Recieved EMsg: "<< Steam::EMsgMap.at(static_cast<int>(emsg)) << std::endl;
 #endif
 	switch (emsg) {
 	case EMsg::ChannelEncryptRequest:
 		{
-			auto enc_request = reinterpret_cast<const MsgChannelEncryptRequest*>(data);
+			//auto enc_request = reinterpret_cast<const MsgChannelEncryptRequest*>(data);
 			
 			CryptoPP::RSA::PublicKey key;
 			ArraySource source(public_key, sizeof(public_key), true /* pumpAll */);
@@ -42,7 +42,7 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
 			auto rsa_size = rsa.FixedCiphertextLength();
 			
 			cmClient->WriteMessage(EMsg::ChannelEncryptResponse, sizeof(MsgChannelEncryptResponse) + rsa_size + 4 + 4, [this, &rsa, rsa_size](unsigned char* buffer) {
-				auto enc_resp = new (buffer) MsgChannelEncryptResponse;
+				//auto enc_resp = new (buffer) MsgChannelEncryptResponse;
 				auto crypted_sess_key = buffer + sizeof(MsgChannelEncryptResponse); 
 				
 				cmClient->rnd.GenerateBlock(cmClient->sessionKey, sizeof(cmClient->sessionKey));
@@ -85,7 +85,8 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
                     .next_out = buffer.get(),
                     .avail_out = size_unzipped,
                     .zalloc = Z_NULL,
-                    .zfree = Z_NULL
+                    .zfree = Z_NULL,
+                    .opaque = nullptr
             };
             int res = inflateInit2(&zStream, 16); // Window size 16 needed for gzip decompression
             assert(res == Z_OK);

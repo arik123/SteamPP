@@ -229,9 +229,9 @@ namespace Steam {
 		
 		// some members remain here to avoid a back pointer
 		std::function<void(std::function<void()> callback, int timeout)> setInterval;
-		std::size_t packetLength;
-		void ReadMessage(const unsigned char* data, std::size_t length);
-		void HandleMessage(EMsg eMsg, const unsigned char* data, std::size_t length, std::uint64_t job_id);
+		uint32_t packetLength;
+		void ReadMessage(const unsigned char* data, uint32_t length);
+		void HandleMessage(EMsg eMsg, const unsigned char* data, uint32_t length, std::uint64_t job_id);
         void _webAuthenticate(const std::string& nonce);
     };
 }
