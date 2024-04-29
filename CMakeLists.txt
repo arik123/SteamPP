@@ -5,7 +5,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Mo
 
 find_package(Protobuf REQUIRED)
 find_package(CryptoPP REQUIRED)
-find_package(LibArchive REQUIRED)
+find_package(ZLIB REQUIRED)
 
 set(PROTOBUF_IMPORT_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/Protobufs)
 PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS
@@ -33,7 +33,7 @@ message(STATUS
 include_directories(
 	${PROTOBUF_INCLUDE_DIRS}
 	${CRYPTOPP_INCLUDE_DIR}
-	${LibArchive_INCLUDE_DIRS}
+	${ZLIB_INCLUDE_DIRS}
 	${CMAKE_CURRENT_BINARY_DIR}
 )
 
@@ -48,7 +48,7 @@ add_library(steam++
 target_link_libraries(steam++
 	${PROTOBUF_LIBRARIES}
 	${CRYPTOPP_LIBRARIES}
-	${LibArchive_LIBRARIES}
+	${ZLIB_LIBRARIES}
 )
 IF (WIN32)
 	add_compile_definitions(WIN32_LEAN_AND_MEAN)

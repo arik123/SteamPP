@@ -1,0 +1,12 @@
+{
+  "dependencies": [
+    "cryptopp",
+    "openssl",
+    "protobuf",
+    "boost-asio",
+    "boost-beast",
+    "zlib",
+    "rapidjson",
+    { "name": "protobuf", "host": true }
+  ]
+}

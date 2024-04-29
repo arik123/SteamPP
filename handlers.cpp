@@ -4,8 +4,7 @@
 #include <cryptopp/crc.h>
 #include <cryptopp/rsa.h>
 
-#include <archive.h>
-#include <archive_entry.h>
+#include <zlib.h>
 #include <steammessages_clientserver_login.pb.h>
 #include <steammessages_clientserver_friends.pb.h>
 
@@ -71,57 +70,41 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, std::size_
 		
 		break;
 		
-	case EMsg::Multi:
-		{
-			CMsgMulti msg_multi;
-			msg_multi.ParseFromArray(data, length);
-			auto size_unzipped = msg_multi.size_unzipped();
-			auto payload = msg_multi.message_body();
-			auto data = reinterpret_cast<const unsigned char*>(payload.data());
-			
-			if (size_unzipped > 0) {
-				auto buffer = new unsigned char[size_unzipped];
-				auto archive = archive_read_new();
-				
-				auto result = archive_read_support_filter_all(archive); // I don't see deflate so using all
-				assert(result == ARCHIVE_OK);
-				
-				result = archive_read_support_format_zip(archive);
-				assert(result == ARCHIVE_OK);
-				
-				result = archive_read_open_memory(archive, const_cast<unsigned char*>(data), payload.size());
-				assert(result == ARCHIVE_OK);
-				
-				archive_entry* entry;
-				result = archive_read_next_header(archive, &entry);
-				assert(result == ARCHIVE_OK);
-				assert(archive_entry_pathname(entry) == std::string("z"));
-				assert(archive_entry_size(entry) == size_unzipped);
-				
-				auto length = archive_read_data(archive, buffer, size_unzipped);
-				assert(length == size_unzipped);
-				
-				assert(archive_read_next_header(archive, &entry) == ARCHIVE_EOF);
-				
-				result = archive_read_free(archive);
-				assert(result == ARCHIVE_OK);
-				
-				data = buffer;
-			}
-			
-			auto payload_size = size_unzipped ? size_unzipped : payload.size();
-			for (unsigned offset = 0; offset < payload_size;) {
-				auto subSize = *reinterpret_cast<const std::uint32_t*>(data + offset);
-				ReadMessage(data + offset + 4, subSize);
-				offset += 4 + subSize;
-			}
-			
-			if (size_unzipped > 0) {
-				delete[] data;
-			}			
-		}
-		
-		break;
+	case EMsg::Multi: {
+        CMsgMulti msg_multi;
+        msg_multi.ParseFromArray(data, length);
+        auto payload = msg_multi.message_body();
+
+        std::unique_ptr<unsigned char> buffer = nullptr;
+        if (msg_multi.has_size_unzipped() && msg_multi.size_unzipped() > 0) {
+            auto size_unzipped = msg_multi.size_unzipped();
+            buffer = std::unique_ptr<unsigned char>(new unsigned char[size_unzipped]);
+            z_stream zStream = {
+                    .next_in = reinterpret_cast<unsigned char *>(payload.data()),
+                    .avail_in = (uInt)payload.size(),
+                    .next_out = buffer.get(),
+                    .avail_out = size_unzipped,
+                    .zalloc = Z_NULL,
+                    .zfree = Z_NULL
+            };
+            int res = inflateInit2(&zStream, 16); // Window size 16 needed for gzip decompression
+            assert(res == Z_OK);
+            res = inflate(&zStream, Z_FINISH);
+            assert(res == Z_STREAM_END);
+            res = inflateEnd(&zStream);
+            assert(res == Z_OK);
+
+            data = buffer.get();
+        }
+
+        auto payload_size = msg_multi.has_size_unzipped() ? msg_multi.size_unzipped() : payload.size();
+        for (unsigned offset = 0; offset < payload_size;) {
+            auto subSize = *reinterpret_cast<const std::uint32_t*>(data + offset);
+            ReadMessage(data + offset + 4, subSize);
+            offset += 4 + subSize;
+        }
+        break;
+    }
 		
 	case EMsg::ClientLogOnResponse:
 		{
