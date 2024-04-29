@@ -5,12 +5,12 @@
 #include <cryptopp/rsa.h>
 
 #include <zlib.h>
-#include <steammessages_clientserver_login.pb.h>
-#include <steammessages_clientserver_friends.pb.h>
+#include "steammessages_clientserver_login.pb.h"
+#include "steammessages_clientserver_friends.pb.h"
 
-#include "cmclient.h"
+#include "../include/cmclient.h"
 
-#include "../../src/consoleColor.h"
+#include "../../../src/consoleColor.h"
 
 byte public_key[] = {
 	0x30, 0x81, 0x9D, 0x30, 0x0D, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x01, 0x01,
@@ -27,12 +27,13 @@ byte public_key[] = {
 
 void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, uint32_t length, std::uint64_t job_id) {
 #ifdef _DEBUG
-	std::cout << "Recieved EMsg: "<< Steam::EMsgMap.at(static_cast<int>(emsg)) << std::endl;
+    if(Steam::EMsgMap.contains(static_cast<int>(emsg))) std::cout << "Recieved EMsg: "<< Steam::EMsgMap.at(static_cast<int>(emsg)) << std::endl;
+    else std::cout << "Recieved unknown EMsg: " << static_cast<int>(emsg) << std::endl;
 #endif
 	switch (emsg) {
 	case EMsg::ChannelEncryptRequest:
 		{
-			//auto enc_request = reinterpret_cast<const MsgChannelEncryptRequest*>(data);
+			auto enc_request = reinterpret_cast<const MsgChannelEncryptRequest*>(data);
 			
 			CryptoPP::RSA::PublicKey key;
 			ArraySource source(public_key, sizeof(public_key), true /* pumpAll */);
@@ -42,7 +43,7 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, uint32_t l
 			auto rsa_size = rsa.FixedCiphertextLength();
 			
 			cmClient->WriteMessage(EMsg::ChannelEncryptResponse, sizeof(MsgChannelEncryptResponse) + rsa_size + 4 + 4, [this, &rsa, rsa_size](unsigned char* buffer) {
-				//auto enc_resp = new (buffer) MsgChannelEncryptResponse;
+				auto enc_resp = new (buffer) MsgChannelEncryptResponse;
 				auto crypted_sess_key = buffer + sizeof(MsgChannelEncryptResponse); 
 				
 				cmClient->rnd.GenerateBlock(cmClient->sessionKey, sizeof(cmClient->sessionKey));
@@ -72,7 +73,7 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, uint32_t l
 		
 	case EMsg::Multi: {
         CMsgMulti msg_multi;
-        msg_multi.ParseFromArray(data, length);
+        msg_multi.ParseFromArray(data, static_cast<int>(length));
         auto payload = msg_multi.message_body();
 
         std::unique_ptr<unsigned char> buffer = nullptr;

@@ -5,14 +5,14 @@
 
 #include <cryptopp/modes.h>
 #include <cryptopp/osrng.h>
-#include <steammessages_clientserver_login.pb.h>
-#include <steammessages_clientserver_friends.pb.h>
+#include "steammessages_clientserver_login.pb.h"
+#include "steammessages_clientserver_friends.pb.h"
 
-#include "cmclient.h"
-#include "steam++.h"
-#include "SteamCrypto.h"
-#include "../../src/SteamApi.h"
-#include "../../src/consoleColor.h"
+#include "../include/cmclient.h"
+#include "../include/steam++.h"
+#include "../include/SteamCrypto.h"
+#include "../../../src/SteamApi.h"
+#include "../../../src/consoleColor.h"
 #include <boost/beast/core/detail/base64.hpp>
 
 
@@ -242,7 +242,7 @@ void Steam::SteamClient::webLogOn() {
 }
 void Steam::SteamClient::_webAuthenticate (const std::string& nonce) {
     // https://github.com/Jessecar96/SteamBot/blob/master/SteamTrade/SteamWeb.cs#L395
-    https://github.com/Jessecar96/SteamBot/blob/master/SteamTrade/SteamWeb.cs#L333
+    // https://github.com/Jessecar96/SteamBot/blob/master/SteamTrade/SteamWeb.cs#L333
     // https://github.com/DoctorMcKay/node-steam-user/blob/master/components/web.js#L30
     if(api == nullptr) throw "No steam api";
     // Encrypt the nonce. I don't know if the client uses HMAC IV here, but there's no harm in it...

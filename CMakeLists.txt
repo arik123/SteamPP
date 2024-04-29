@@ -39,11 +39,11 @@ include_directories(
 
 include_directories($<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../certify/include>)
 add_library(steam++
-	steam++.cpp
-	cmclient.cpp
-	handlers.cpp
+		src/steam++.cpp
+		src/cmclient.cpp
+		src/handlers.cpp
 	${PROTO_SRCS}
-	SteamCrypto.cpp)
+		src/SteamCrypto.cpp)
 
 target_link_libraries(steam++
 	${PROTOBUF_LIBRARIES}

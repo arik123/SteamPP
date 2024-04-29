@@ -1,6 +1,6 @@
 #include <cryptopp/modes.h>
 
-#include "cmclient.h"
+#include "../include/cmclient.h"
 
 const char* MAGIC = "VT01";
 std::uint32_t PROTO_MASK = 0x80000000;
