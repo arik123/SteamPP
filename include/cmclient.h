@@ -9,22 +9,24 @@ extern const char* MAGIC;
 extern std::uint32_t PROTO_MASK;
 
 using namespace CryptoPP;
-using namespace Steam;
+namespace Steam {
+    class CMClient {
+    public:
+        CMClient(const std::function<void(std::unique_ptr<unsigned char[]> && buffer, const std::size_t len)>& write);
 
-class SteamClient::CMClient {
-public:
-	CMClient(std::function<void(std::size_t length, std::function<void(unsigned char* buffer)> fill)> write);
-	
-	void WriteMessage(Steam::EMsg emsg, std::size_t length, const std::function<void(unsigned char* buffer)> &fill);
-	void WriteMessage(Steam::EMsg emsg, const google::protobuf::Message& message, std::uint64_t job_id = 0);
-	void WritePacket(std::size_t length, const std::function<void(unsigned char* buffer)> &fill);
-	
-	std::function<void(std::size_t length, std::function<void(unsigned char* buffer)> fill)> write;	
-	
-	SteamID steamID;
-	std::int32_t sessionID;
+        void WriteMessage(Steam::EMsg emsg, std::unique_ptr<unsigned char[]> && buffer, std::size_t length> &fill);
+        void WriteMessage(Steam::EMsg emsg, const google::protobuf::Message& message, std::uint64_t job_id = 0);
+        void WritePacket(std::unique_ptr<unsigned char[]> && buffer, std::size_t length);
 
-	bool encrypted;
-	byte sessionKey[32];
-	AutoSeededRandomPool rnd;
-};
+        const std::function<void(std::unique_ptr<unsigned char[]> buffer, const std::size_t len)> & write;
+
+        SteamID steamID = {};
+        std::int32_t sessionID = 0;
+
+        bool encrypted = false;
+        byte sessionKey[32] = {};
+        AutoSeededRandomPool rnd;
+    };
+
+}
+

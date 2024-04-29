@@ -38,7 +38,7 @@ public:
 	SteamApi(const asio::any_io_executor& ex, std::string apiKey);
 	// Start the asynchronous operation
 	void request(char const* interface, char const* method, char const* version, bool post, const std::unordered_map<std::string, std::variant<std::string, std::vector<uint8_t>>>& data, const std::function<void(http::response<http::string_body>&)>& callback);
-	void GetCMList(const std::string& cellid, const std::function<void(std::vector<net::endpoint> serverList)>& callback);
+	void GetCMList(const std::string& cellid, const std::function<void(std::vector<net::endpoint> && serverList)>& callback);
 };
 
 

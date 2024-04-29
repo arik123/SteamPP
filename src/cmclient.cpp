@@ -4,32 +4,37 @@
 
 const char* MAGIC = "VT01";
 std::uint32_t PROTO_MASK = 0x80000000;
-
-SteamClient::CMClient::CMClient(std::function<void(std::size_t, std::function<void(unsigned char*)>)> write) : write(std::move(write)) {
+using namespace Steam;
+CMClient::CMClient(const std::function<void(std::unique_ptr<unsigned char[]> && buffer, const std::size_t len)>& write) : write(write) {
 	steamID.instance = 1;
 	steamID.universe = static_cast<unsigned>(EUniverse::Public);
 	steamID.type = static_cast<unsigned>(EAccountType::Individual);
 }
 
-void SteamClient::CMClient::WriteMessage(EMsg emsg, std::size_t length, const std::function<void(unsigned char*)> &fill) {
+void CMClient::WriteMessage(EMsg emsg, std::unique_ptr<unsigned char[]> && buffer, std::size_t length) {
+    std::unique_ptr<unsigned char[]> buff;
+    std::size_t offset;
 	if (emsg == EMsg::ChannelEncryptResponse) {
-		WritePacket(sizeof(MsgHdr) + length, [emsg, &fill](unsigned char* buffer) {
-			auto header = new (buffer) MsgHdr;
-			header->msg = static_cast<std::uint32_t>(emsg);
-			fill(buffer + sizeof(MsgHdr));
-		});
+        offset =  sizeof(MsgHdr);
+        buff = std::make_unique<unsigned char[]>(offset + length);
+
+        auto header = reinterpret_cast<MsgHdr*>(buff.get());
+        header->msg = static_cast<std::uint32_t>(emsg);
 	} else {
-		WritePacket(sizeof(ExtendedClientMsgHdr) + length, [this, emsg, &fill](unsigned char* buffer) {
-			auto header = new (buffer) ExtendedClientMsgHdr;
-			header->msg = static_cast<std::uint32_t>(emsg);
-			header->sessionID = sessionID;
-			header->steamID = steamID;
-			fill(buffer + sizeof(ExtendedClientMsgHdr));
-		});
+        offset =  sizeof(ExtendedClientMsgHdr);
+        buff = std::make_unique<unsigned char[]>(offset + length);
+
+        auto header = reinterpret_cast<ExtendedClientMsgHdr*>(buff.get());
+        header->msg = static_cast<std::uint32_t>(emsg);
+        header->sessionID = sessionID;
+        header->steamID = steamID;
 	}
+    std::memcpy(buff.get() + offset, buffer.get(), length);
+
+    WritePacket(std::move(buff), offset + length);
 }
 
-void SteamClient::CMClient::WriteMessage(EMsg emsg, const google::protobuf::Message &message, std::uint64_t job_id) {
+void CMClient::WriteMessage(EMsg emsg, const google::protobuf::Message &message, std::uint64_t job_id) {
 #ifdef _DEBUG
 	std::cout << "Sending: " << message.GetTypeName() << '\n';
 #endif
@@ -41,17 +46,19 @@ void SteamClient::CMClient::WriteMessage(EMsg emsg, const google::protobuf::Mess
 	}
 	auto proto_size = proto.ByteSizeLong();
 	auto message_size = message.ByteSizeLong();
-	WritePacket(sizeof(MsgHdrProtoBuf) + proto_size + message_size, [emsg, &proto, proto_size, &message, message_size](unsigned char* buffer) {
-		auto header = new (buffer) MsgHdrProtoBuf;
-		header->headerLength = proto_size;
-		header->msg = static_cast<std::uint32_t>(emsg) | PROTO_MASK;
-		proto.SerializeToArray(header->proto, proto_size);
-		message.SerializeToArray(header->proto + proto_size, message_size);
-	});
+
+    const std::size_t totalSize = sizeof(MsgHdrProtoBuf) + proto_size + message_size;
+    auto buff = std::make_unique<unsigned char[]>(totalSize);
+
+    auto header = reinterpret_cast<MsgHdrProtoBuf*>(buff.get());
+    header->headerLength = proto_size;
+    header->msg = static_cast<std::uint32_t>(emsg) | PROTO_MASK;
+    proto.SerializeToArray(header->proto, proto_size);
+    message.SerializeToArray(header->proto + proto_size, message_size);
+    WritePacket(std::move(buff), totalSize);
 }
 
-
-void SteamClient::CMClient::WritePacket(const std::size_t length, const std::function<void(unsigned char* buffer)> &fill) {
+void CMClient::WritePacket(std::unique_ptr<unsigned char[]> && buffer, const std::size_t length) {
 	if (encrypted) {
 		auto crypted_size = 16 + (length / 16 + 1) * 16; // IV + crypted message padded to multiple of 16
 		
@@ -80,6 +87,12 @@ void SteamClient::CMClient::WritePacket(const std::size_t length, const std::fun
 			delete[] in_buffer;
 		});
 	} else {
+        auto buff = std::make_unique<unsigned char[]>(8 + length);
+        *reinterpret_cast<std::uint32_t*>(buff.get()) = length;
+        std::copy(MAGIC, MAGIC + 4, buff.get() + 4);
+
+        //TODO: decide for fill - prevent copy
+
 		write(8 + length, [&](unsigned char* buffer) {
 			*reinterpret_cast<std::uint32_t*>(buffer) = length;
 			std::copy(MAGIC, MAGIC + 4, buffer + 4);

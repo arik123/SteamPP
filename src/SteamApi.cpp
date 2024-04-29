@@ -11,7 +11,7 @@
 #include <boost/asio.hpp>
 #include "boost/certify/https_verification.hpp"
 
-void SteamApi::GetCMList(const std::string &cellid, const std::function<void(std::vector < net::endpoint > )> &callback) {
+void SteamApi::GetCMList(const std::string &cellid, const std::function<void(std::vector < net::endpoint >&& )> &callback) {
     request("ISteamDirectory", "GetCMList", "v1", false,
             { {"cellid", cellid}, {"maxcount", "5"} },
             [=](http::response<http::string_body>& resp) {
@@ -26,7 +26,7 @@ void SteamApi::GetCMList(const std::string &cellid, const std::function<void(std
                         std::string server(v.GetString(), v.GetStringLength());
                         serverList.emplace_back(asio::ip::address::from_string(server.substr(0, server.find(':'))), std::stoi(server.substr(server.find(':')+1)));
                     }
-                    callback(serverList);
+                    callback(std::move(serverList));
                 }
                 else
                 {

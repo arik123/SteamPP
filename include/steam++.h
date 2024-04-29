@@ -6,6 +6,8 @@
 #include <string>
 #include "../steam_language/steam_language.h"
 #include "SteamApi.h"
+#include "../include/utils.h"
+#include "cmclient.h"
 
 namespace Steam {
 	struct SteamID {
@@ -68,16 +70,15 @@ namespace Steam {
 #pragma pack(pop)
 	
 	class SteamClient {
+    private:
+        boost::asio::io_context & io;
 	public:
 		/**
 		 * @param write         Called when SteamClient wants to send some data over the socket.
 		 *                      Allocate a buffer of @a length bytes, then call @a fill with it, then send it.
 		 * @param set_interval  @a callback must be called every @a timeout seconds as long as the connection is alive.
 		 */
-		SteamClient(
-			std::function<void(std::size_t length, std::function<void(unsigned char* buffer)> fill)> write,
-			std::function<void(std::function<void()> callback, int timeout)> set_interval
-		);
+		SteamClient(boost::asio::io_context & _io, const Environment & e);
 		
 		~SteamClient();
 
@@ -123,7 +124,7 @@ namespace Steam {
 
         std::string noonce;
 
-        SteamApi * api = nullptr;
+        SteamApi api;
 
 		void SetGamePlayed(int gameID);
         void SetGamePlayed(std::string name);
@@ -222,14 +223,33 @@ namespace Steam {
 		void RequestUserInfo(std::size_t count, SteamID users[]);
 
 		void webLogOn();
-		
+
+        void run();
+
+        void setSentry(std::string && sentry);
+        void setSentry(const std::string & sentry);
+        void setCellid(std::string && cellid);
+        void setCellid(const std::string & cellid);
+        void setServerList(std::vector<net::endpoint> && serverList);
 	private:
-		class CMClient;
-		CMClient* cmClient;
-		
-		// some members remain here to avoid a back pointer
-		std::function<void(std::function<void()> callback, int timeout)> setInterval;
-		uint32_t packetLength;
+
+        net::socket sock;
+        std::string sentry;
+        std::string cellid;
+		CMClient cmClient;
+
+
+        void steamWrite(const unsigned char* buffer, const std::size_t len);
+
+        std::vector<net::endpoint> serverList;
+        net::endpoint * ourServer = nullptr;
+        void connect();
+        void pickServer();
+        bool finishConnection();
+        void reconnect();
+
+        std::unique_ptr<boost::asio::steady_timer> setInterval(std::function<void()> callback, int interval);
+        static void runInterval(const boost::system::error_code&, std::function<void()> callback, int interval, boost::asio::steady_timer * timer);
 		void ReadMessage(const unsigned char* data, uint32_t length);
 		void HandleMessage(EMsg eMsg, const unsigned char* data, uint32_t length, std::uint64_t job_id);
         void _webAuthenticate(const std::string& nonce);

@@ -73,21 +73,18 @@ void SteamCommunity::request(std::string endpoint, bool post,
     //req_.insert()
     req_.version(11);
     req_.prepare_payload();
+    //TODO: potential memory leak
     auto p_apiRequest = new WebRequest(ex,
                                        ctx,
                                        host,
                                        endpoint,
                                        req_,
                                        callback,
-                                       [](WebRequest * ptr){shutdown(ptr);}, true);
+                                       [](WebRequest * ptr){delete ptr;}, true);
     // Look up the domain name
     resolver_.async_resolve(host, "443", [p_apiRequest](beast::error_code ec, const net::resolver::results_type &results) {
         p_apiRequest->on_resolve(ec, results);
     });
-}
-
-void SteamCommunity::shutdown(WebRequest * ptr) {
-    delete ptr;
 }
 
 void SteamCommunity::getUserInventory(uint64_t steamid, uint32_t appID, uint32_t contextID,

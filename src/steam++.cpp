@@ -2,6 +2,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
+#include <functional>
+#include <vector>
+#include <random>
 
 #include <cryptopp/modes.h>
 #include <cryptopp/osrng.h>
@@ -15,6 +18,8 @@
 #include "../include/consoleColor.h"
 #include <boost/beast/core/detail/base64.hpp>
 
+#include <boost/asio.hpp>
+
 
 SteamID::SteamID(std::uint64_t steamID64) :
 	steamID64(steamID64) {}
@@ -24,15 +29,31 @@ SteamID::operator std::uint64_t() const {
 }
 
 SteamClient::SteamClient(
-	std::function<void(std::size_t length, std::function<void(unsigned char* buffer)> fill)> write,
-	std::function<void(std::function<void()> callback, int timeout)> set_interval
-) : cmClient(new CMClient(std::move(write))), setInterval(std::move(set_interval)) {}
+    boost::asio::io_context & _io,
+    const Environment & e
+) : io(_io), api(asio::make_strand(io), e.get("STEAM_API_KEY")),
+    sock(io), cmClient(std::bind(&SteamClient::steamWrite, this, std::placeholders::_1, std::placeholders::_2)){
+    sock.non_blocking(true);
+}
+
+std::unique_ptr<boost::asio::steady_timer>  SteamClient::setInterval(std::function<void()> callback, int interval) {
+    auto timer = std::make_unique<boost::asio::steady_timer>(io);
+    timer->expires_after(std::chrono::seconds(interval));
+    timer->async_wait(std::bind(SteamClient::runInterval, boost::asio::placeholders::error, callback, interval, timer.get()));
+}
+
+void SteamClient::runInterval(const boost::system::error_code&, std::function<void()> callback, int interval, boost::asio::steady_timer * timer) {
+    callback();
+    timer->expires_at(timer->expiry() + std::chrono::seconds(interval));
+    timer->async_wait(std::bind(SteamClient::runInterval, boost::asio::placeholders::error, callback, interval, timer));
+}
 
 SteamClient::~SteamClient() {
 	delete cmClient;
 }
 
 void SteamClient::LogOn(const char* username, const char* password, const unsigned char hash[20], const char* code, SteamID steamID) {
+    this->connect();
     //FIXME: OUTDATED
 	if (steamID)
 		cmClient->steamID = steamID;
@@ -164,15 +185,6 @@ template <typename T>
 void Steam::SteamClient::SendCMsg(T& Proto, EMsg eMsg)
 {
 	cmClient->WriteMessage(eMsg, Proto);
-}
-
-std::size_t SteamClient::connected() {
-	packetLength = 0;
-	cmClient->steamID.ID = 0;
-	cmClient->sessionID = 0;
-	cmClient->encrypted = false;
-
-	return 8;
 }
 
 std::size_t SteamClient::readable(const unsigned char* input) {
@@ -318,4 +330,94 @@ void Steam::SteamClient::_webAuthenticate (const std::string& nonce) {
         setTimeout(this._webLogOn.bind(this), this._webauthTimeout);
     }
     */
+}
+
+void Steam::SteamClient::run() {
+
+}
+
+void Steam::SteamClient::steamWrite(std::unique_ptr<const unsigned char> buffer, const std::size_t len) {
+    sock.async_write_some(asio::buffer(buffer.get(), len), [buf = std::move(buffer)](boost::system::error_code error, std::size_t bytes_transferred){
+#ifdef  _DEBUG
+        std::cout << "Wrote " << bytes_transferred << " bytes, finished with " << error <<std::endl;
+#endif
+        if (error && error != asio::error::would_block) {
+            std::cerr << "Socket died, trying to reconnect" << std::endl;
+
+        }
+    });
+}
+
+void Steam::SteamClient::connect() {
+    api.GetCMList(cellid, [&](std::vector<net::endpoint> && servers){
+        this->setServerList(std::move(servers));
+        this->reconnect();
+
+    });
+}
+
+void Steam::SteamClient::pickServer() {
+    uint64_t min = std::numeric_limits<uint64_t>::max(), index, i=0;
+    if(ourServer == nullptr) {
+        for (const auto &server: serverList) {
+            try {
+                std::chrono::system_clock::time_point tp = std::chrono::system_clock::now();
+
+                sock.connect(server);
+
+                std::chrono::system_clock::time_point tp2 = std::chrono::system_clock::now();
+
+                std::chrono::system_clock::duration dtn = tp2 - tp;
+                uint64_t now = std::chrono::duration_cast<std::chrono::microseconds>(dtn).count();
+                if (now < min) {
+                    min = now;
+                    index = i;
+                }
+                sock.shutdown(net::socket::shutdown_both);
+                sock.close();
+            }
+            catch (const std::exception &e) {}
+            i++;
+        }
+    } else {
+        index = std::rand()%serverList.size();
+    }
+    std::cout << "Picked: " << serverList[index].address() << ':' << serverList[index].port() << " with ping " << min << " us\n";
+    ourServer = &serverList[index];
+}
+
+bool Steam::SteamClient::finishConnection() {
+    if(ourServer == nullptr) return false;
+    try
+    {
+        sock.connect(*ourServer);
+        return true;
+    }
+    catch (const std::exception& e) {
+        std::cout << color(colorFG::Red) << "Connection to " << ourServer->address() << ':' << ourServer->port() << "failed with error: " << e.what() << color() << std::endl;
+    }
+    return false;
+}
+
+void Steam::SteamClient::setSentry(std::string && _sentry) {
+    this->sentry = _sentry;
+}
+void Steam::SteamClient::setSentry(const std::string & _sentry) {
+    this->sentry = _sentry;
+}
+void Steam::SteamClient::setCellid(std::string && _cellid) {
+    this->cellid = _cellid;
+}
+void Steam::SteamClient::setCellid(const std::string & _cellid) {
+    this->cellid = _cellid;
+}
+
+void Steam::SteamClient::setServerList(std::vector<net::endpoint> && _serverList) {
+    this->serverList = _serverList;
+}
+
+void Steam::SteamClient::reconnect() {
+    do {
+        this->pickServer();
+    } while(this->finishConnection());
 }
