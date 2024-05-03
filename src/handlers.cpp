@@ -10,8 +10,12 @@
 #include "steammessages_clientserver_friends.pb.h"
 
 #include "../include/cmclient.h"
+#include "../include/steam++.h"
 
 #include "../include/consoleColor.h"
+
+using namespace CryptoPP;
+using namespace Steam;
 
 byte public_key[] = {
 	0x30, 0x81, 0x9D, 0x30, 0x0D, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x01, 0x01,
@@ -47,13 +51,13 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, uint32_t l
 			
 			auto rsa_size = rsa.FixedCiphertextLength();
 			
-			cmClient->WriteMessage(EMsg::ChannelEncryptResponse, sizeof(MsgChannelEncryptResponse) + rsa_size + 4 + 4, [this, &rsa, rsa_size](unsigned char* buffer) {
+			cmClient.WriteMessage(EMsg::ChannelEncryptResponse, sizeof(MsgChannelEncryptResponse) + rsa_size + 4 + 4, [this, &rsa, rsa_size](unsigned char* buffer) {
 				auto enc_resp = new (buffer) MsgChannelEncryptResponse;
 				auto crypted_sess_key = buffer + sizeof(MsgChannelEncryptResponse); 
 				
-				cmClient->rnd.GenerateBlock(cmClient->sessionKey, sizeof(cmClient->sessionKey));
+				cmClient.rnd.GenerateBlock(cmClient.sessionKey, sizeof(cmClient.sessionKey));
 				
-				rsa.Encrypt(cmClient->rnd, cmClient->sessionKey, sizeof(cmClient->sessionKey), crypted_sess_key);
+				rsa.Encrypt(cmClient.rnd, cmClient.sessionKey, sizeof(cmClient.sessionKey), crypted_sess_key);
 				
 				CRC32().CalculateDigest(crypted_sess_key + rsa_size, crypted_sess_key, rsa_size);
 				*reinterpret_cast<std::uint32_t*>(crypted_sess_key + rsa_size + 4) = 0;
@@ -67,7 +71,7 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, uint32_t l
 			auto enc_result = reinterpret_cast<const MsgChannelEncryptResult*>(data);
 			assert(enc_result->result == static_cast<std::uint32_t>(EResult::OK));
 			
-			cmClient->encrypted = true;
+			cmClient.encrypted = true;
 			
 			if (onHandshake) {
 				onHandshake();
@@ -122,12 +126,12 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, uint32_t l
 			auto interval = logon_resp.legacy_out_of_game_heartbeat_seconds();
 			//if(!logon_resp.webapi_authenticate_user_nonce().empty()) this->noonce = logon_resp.webapi_authenticate_user_nonce();
 			if (onLogOn) {
-				onLogOn(eresult, cmClient->steamID, logon_resp.cell_id());
+				onLogOn(eresult, cmClient.steamID, logon_resp.cell_id());
 			}
 			
 			if (eresult == EResult::OK) {
 				setInterval([this] {
-					cmClient->WriteMessage(EMsg::ClientHeartBeat, CMsgClientHeartBeat());
+					cmClient.WriteMessage(EMsg::ClientHeartBeat, CMsgClientHeartBeat());
 				}, interval);
 			}			
 		}
@@ -162,7 +166,7 @@ void SteamClient::HandleMessage(EMsg emsg, const unsigned char* data, uint32_t l
 			
 			CMsgClientUpdateMachineAuthResponse response;
 			response.set_sha_file(sha, 20);
-			cmClient->WriteMessage(EMsg::ClientUpdateMachineAuthResponse, response, job_id);
+			cmClient.WriteMessage(EMsg::ClientUpdateMachineAuthResponse, response, job_id);
 			
 			onSentry(sha);
 		}

@@ -2,8 +2,7 @@
 // Created by Max on 31. 7. 2021.
 //
 
-#ifndef STEAMBOT_CONSOLECOLOR_H
-#define STEAMBOT_CONSOLECOLOR_H
+#pragma once
 #include <iostream>
 #include <string>
 
@@ -122,4 +121,3 @@ inline int setupConsole() {
 #endif
     return 0;
 }
-#endif //STEAMBOT_CONSOLECOLOR_H

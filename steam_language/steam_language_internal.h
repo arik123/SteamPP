@@ -1,4 +1,6 @@
+#pragma once
 #include <cstdint>
+#include "steam_language.h"
 #pragma pack(push, 1)
 
 namespace Steam

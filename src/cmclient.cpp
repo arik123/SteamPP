@@ -2,36 +2,32 @@
 
 #include "../include/cmclient.h"
 
-const char* MAGIC = "VT01";
 std::uint32_t PROTO_MASK = 0x80000000;
 using namespace Steam;
-CMClient::CMClient(const std::function<void(std::unique_ptr<unsigned char[]> && buffer, const std::size_t len)>& write) : write(write) {
+using namespace CryptoPP;
+
+CMClient::CMClient(std::function<void(std::size_t, std::function<void(unsigned char*)>)> write) : write(std::move(write)) {
 	steamID.instance = 1;
 	steamID.universe = static_cast<unsigned>(EUniverse::Public);
 	steamID.type = static_cast<unsigned>(EAccountType::Individual);
 }
 
-void CMClient::WriteMessage(EMsg emsg, std::unique_ptr<unsigned char[]> && buffer, std::size_t length) {
-    std::unique_ptr<unsigned char[]> buff;
-    std::size_t offset;
+void CMClient::WriteMessage(EMsg emsg, std::size_t length, const std::function<void(unsigned char*)> &fill) {
 	if (emsg == EMsg::ChannelEncryptResponse) {
-        offset =  sizeof(MsgHdr);
-        buff = std::make_unique<unsigned char[]>(offset + length);
-
-        auto header = reinterpret_cast<MsgHdr*>(buff.get());
-        header->msg = static_cast<std::uint32_t>(emsg);
+		WritePacket(sizeof(MsgHdr) + length, [emsg, &fill](unsigned char* buffer) {
+			auto header = new (buffer) MsgHdr;
+			header->msg = static_cast<std::uint32_t>(emsg);
+			fill(buffer + sizeof(MsgHdr));
+		});
 	} else {
-        offset =  sizeof(ExtendedClientMsgHdr);
-        buff = std::make_unique<unsigned char[]>(offset + length);
-
-        auto header = reinterpret_cast<ExtendedClientMsgHdr*>(buff.get());
-        header->msg = static_cast<std::uint32_t>(emsg);
-        header->sessionID = sessionID;
-        header->steamID = steamID;
+		WritePacket(sizeof(ExtendedClientMsgHdr) + length, [this, emsg, &fill](unsigned char* buffer) {
+			auto header = new (buffer) ExtendedClientMsgHdr;
+			header->msg = static_cast<std::uint32_t>(emsg);
+			header->sessionID = sessionID;
+			header->steamID = steamID;
+			fill(buffer + sizeof(ExtendedClientMsgHdr));
+		});
 	}
-    std::memcpy(buff.get() + offset, buffer.get(), length);
-
-    WritePacket(std::move(buff), offset + length);
 }
 
 void CMClient::WriteMessage(EMsg emsg, const google::protobuf::Message &message, std::uint64_t job_id) {
@@ -46,19 +42,17 @@ void CMClient::WriteMessage(EMsg emsg, const google::protobuf::Message &message,
 	}
 	auto proto_size = proto.ByteSizeLong();
 	auto message_size = message.ByteSizeLong();
-
-    const std::size_t totalSize = sizeof(MsgHdrProtoBuf) + proto_size + message_size;
-    auto buff = std::make_unique<unsigned char[]>(totalSize);
-
-    auto header = reinterpret_cast<MsgHdrProtoBuf*>(buff.get());
-    header->headerLength = proto_size;
-    header->msg = static_cast<std::uint32_t>(emsg) | PROTO_MASK;
-    proto.SerializeToArray(header->proto, proto_size);
-    message.SerializeToArray(header->proto + proto_size, message_size);
-    WritePacket(std::move(buff), totalSize);
+	WritePacket(sizeof(MsgHdrProtoBuf) + proto_size + message_size, [emsg, &proto, proto_size, &message, message_size](unsigned char* buffer) {
+		auto header = new (buffer) MsgHdrProtoBuf;
+		header->headerLength = proto_size;
+		header->msg = static_cast<std::uint32_t>(emsg) | PROTO_MASK;
+		proto.SerializeToArray(header->proto, proto_size);
+		message.SerializeToArray(header->proto + proto_size, message_size);
+	});
 }
 
-void CMClient::WritePacket(std::unique_ptr<unsigned char[]> && buffer, const std::size_t length) {
+
+void CMClient::WritePacket(const std::size_t length, const std::function<void(unsigned char* buffer)> &fill) {
 	if (encrypted) {
 		auto crypted_size = 16 + (length / 16 + 1) * 16; // IV + crypted message padded to multiple of 16
 		
@@ -87,16 +81,27 @@ void CMClient::WritePacket(std::unique_ptr<unsigned char[]> && buffer, const std
 			delete[] in_buffer;
 		});
 	} else {
-        auto buff = std::make_unique<unsigned char[]>(8 + length);
-        *reinterpret_cast<std::uint32_t*>(buff.get()) = length;
-        std::copy(MAGIC, MAGIC + 4, buff.get() + 4);
-
-        //TODO: decide for fill - prevent copy
-
 		write(8 + length, [&](unsigned char* buffer) {
 			*reinterpret_cast<std::uint32_t*>(buffer) = length;
 			std::copy(MAGIC, MAGIC + 4, buffer + 4);
 			fill(buffer + 8);
 		});
 	}
+}
+
+CMPacket::CMPacket(const unsigned char *data, std::size_t data_len) {
+    if(data_len < hdrSize) throw std::runtime_error("invalid header");
+    const auto hdr = reinterpret_cast<const CMPacketHeader*>(data);
+    if(memcmp(&hdr->magic,  MAGIC, std::strlen(MAGIC)) != 0) throw std::runtime_error("invalid packet magic");
+    body.resize(hdr->length - hdrSize);
+    std::memcpy(body.data(), data, std::min((uint32_t)data_len, hdr->length));
+
+}
+
+bool CMPacket::addData(const unsigned char *data, std::size_t data_len) {
+    return false;
+}
+
+const boost::asio::mutable_buffer && CMPacket::getBuffer() {
+    return boost::asio::mutable_buffer();
 }

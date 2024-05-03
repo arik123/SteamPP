@@ -1,30 +1,19 @@
-#ifndef STEAMPP_MAIN
-#define STEAMPP_MAIN
+#pragma once
 
 #include <functional>
 #include <map>
 #include <string>
+#include <array>
+#include <queue>
+#include <semaphore>
+
 #include "../steam_language/steam_language.h"
 #include "SteamApi.h"
 #include "../include/utils.h"
+#include "steamid.h"
 #include "cmclient.h"
 
 namespace Steam {
-	struct SteamID {
-		SteamID(std::uint64_t = 0);
-		operator std::uint64_t() const;
-		
-		union {
-			struct {
-				unsigned ID : 32;
-				unsigned instance : 20;
-				unsigned type : 4;
-				unsigned universe : 8;
-			};
-			std::uint64_t steamID64;
-		};
-	};
-	
 #pragma pack(push, 1)
 	struct ChatMember {
 	private:
@@ -68,7 +57,7 @@ namespace Steam {
 		Type End__;
 	};
 #pragma pack(pop)
-	
+
 	class SteamClient {
     private:
         boost::asio::io_context & io;
@@ -79,8 +68,6 @@ namespace Steam {
 		 * @param set_interval  @a callback must be called every @a timeout seconds as long as the connection is alive.
 		 */
 		SteamClient(boost::asio::io_context & _io, const Environment & e);
-		
-		~SteamClient();
 
 
 		/**
@@ -94,9 +81,8 @@ namespace Steam {
 		 * Call when data has been received.
 		 * 
 		 * @param buffer    Must be of the length previously returned by #connected or #readable.
-		 * @return The number of bytes SteamClient expects next.
 		 */
-		std::size_t readable(const unsigned char* buffer);
+        void readable(std::unique_ptr<CMPacket> && data, const boost::system::error_code & ec, std::size_t size);
 		
 		
 		/**
@@ -197,7 +183,6 @@ namespace Steam {
 		void LogOn(
 			const char* username,
 			const char* password,
-			const unsigned char sentry_hash[20] = nullptr,
 			const char* code = nullptr,
 			SteamID steamID = 0
 		);
@@ -238,8 +223,13 @@ namespace Steam {
         std::string cellid;
 		CMClient cmClient;
 
+        std::array<unsigned char, 8> sock_read_buff = {0};
 
-        void steamWrite(const unsigned char* buffer, const std::size_t len);
+        std::queue<CMPacket> packet_queue;
+        std::counting_semaphore<255> packet_sem;
+
+
+        void steamWrite(std::size_t length, std::function<void(unsigned char* buffer)> fill);
 
         std::vector<net::endpoint> serverList;
         net::endpoint * ourServer = nullptr;
@@ -255,4 +245,3 @@ namespace Steam {
         void _webAuthenticate(const std::string& nonce);
     };
 }
-#endif

@@ -1,5 +1,4 @@
-#ifndef STEAMBOT_UTILS_H
-#define STEAMBOT_UTILS_H
+#pragma once
 #include <string>
 #include <unordered_map>
 #include <fstream>
@@ -52,4 +51,3 @@ public:
         }
     }
 };
-#endif

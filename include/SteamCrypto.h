@@ -2,8 +2,6 @@
 // Created by Max on 3. 8. 2021.
 //
 #pragma once
-#ifndef STEAMBOT_STEAMCRYPTO_H
-#define STEAMBOT_STEAMCRYPTO_H
 #include <vector>
 #include <string>
 #include <cstdint>
@@ -18,4 +16,3 @@ namespace SteamCrypto {
     std::vector<uint8_t> symmetricEncrypt(std::vector<uint8_t> input, std::vector<uint8_t> key, std::vector<uint8_t> iv);
 
 };
-#endif //STEAMBOT_STEAMCRYPTO_H

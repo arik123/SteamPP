@@ -1,9 +1,7 @@
 //
 // Created by Max on 2. 4. 2021.
 //
-
-#ifndef STEAMBOT_STEAMCOMMUNITY_H
-#define STEAMBOT_STEAMCOMMUNITY_H
+#pragma once
 #include <string>
 #include <functional>
 #include <unordered_map>
@@ -53,5 +51,3 @@ public:
 	void getUserInventory(uint64_t steamid, uint32_t appid, uint32_t contextID, const std::function<void(std::vector<InventoryItem>&)>& callback, const std::string& language = "english", const std::string& start = "");
 	void login();
 };
-
-#endif //STEAMBOT_STEAMCOMMUNITY_H

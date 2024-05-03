@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.17)
 project(Steam++)
 
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
 find_package(Protobuf REQUIRED)
@@ -48,7 +49,8 @@ add_library(steam++
 	src/WebRequest.cpp
 	src/utils.cpp
 	src/SteamApi.cpp
-	src/SteamCommunity.cpp)
+	src/SteamCommunity.cpp
+	include/steamid.h)
 
 target_include_directories(steam++ PRIVATE ${Boost_INCLUDE_DIR} http_parser)
 
